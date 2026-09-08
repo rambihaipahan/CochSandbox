@@ -1,0 +1,36 @@
+{
+  "_comment": "Maps each dashboard platform to the workbook sheet(s)/block(s) that hold its monthly data. 'header_row' is the row number (1-indexed) of the block's own header row (the row containing 'Total Storage' / 'Month' / ... labels) inside the given sheet -- this uniquely identifies a block when a sheet contains more than one (e.g. 'EQUINIX DC'). Edit this file to reclassify a site or add a new one; no code changes needed.",
+  "platforms": {
+    "flashstack_pure": {
+      "label": "FlashStack / Pure Storage",
+      "sites": [
+        { "sheet": "MacPark-DC", "header_row": 1, "site": "MacPark" },
+        { "sheet": "EQUINIX DC", "header_row": 1, "site": "Equinix" }
+      ]
+    },
+    "hyperflex": {
+      "label": "Cisco HyperFlex",
+      "sites": [
+        { "sheet": "Denver (HX)", "header_row": 1, "site": "Denver" },
+        { "sheet": "Mechelen (HX)", "header_row": 1, "site": "Mechelen" },
+        { "sheet": "AUB (HX)", "header_row": 1, "site": "Brisbane" },
+        { "sheet": "CMY (HX)", "header_row": 1, "site": "Kuala Lumpur" },
+        { "sheet": "CNC (HX)", "header_row": 1, "site": "Chengdu" },
+        { "sheet": "GBW (HX)", "header_row": 1, "site": "Weybridge" },
+        { "sheet": "SEG (HX)", "header_row": 1, "site": "Gothenburg" }
+      ]
+    },
+    "oracle_zfs": {
+      "label": "Oracle ZFS / SuperCluster",
+      "sites": [
+        { "sheet": "EQUINIX DC", "header_row": 126, "site": "Equinix SuperCluster" },
+        {
+          "sheet": "EQUINIX DC",
+          "header_row": 390,
+          "site": "Windchill Prod (Oracle RAC)",
+          "_note": "Grouped with the Oracle blocks in the source sheet; confirm this belongs under Oracle ZFS rather than FlashStack and move it in this file if not."
+        }
+      ]
+    }
+  }
+}

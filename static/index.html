@@ -1,0 +1,82 @@
+<title>Storage Utilization Dashboard</title>
+<link rel="stylesheet" href="/styles.css" />
+
+<div class="app">
+  <div class="app-header">
+    <div>
+      <h1>Storage Utilization Dashboard</h1>
+      <div class="subtitle">Monthly capacity review &mdash; FlashStack/Pure, HyperFlex, Oracle ZFS</div>
+    </div>
+    <div class="header-actions">
+      <a class="btn" href="/api/export" download>Download workbook (.xlsx)</a>
+    </div>
+  </div>
+
+  <div class="tabs" id="platform-tabs" role="tablist"></div>
+
+  <div class="kpi-row" id="kpi-row"></div>
+
+  <div class="panel">
+    <div class="panel-header">
+      <h2 id="capacity-chart-title">Capacity vs. in-use (TB)</h2>
+      <span class="hint">Solid = actual &middot; dashed = forecast</span>
+    </div>
+    <div class="chart-wrap"><canvas id="capacity-chart"></canvas></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header">
+      <h2 id="pct-chart-title">% utilization by site</h2>
+      <span class="hint">Dashed red = capacity threshold</span>
+    </div>
+    <div class="chart-wrap"><canvas id="pct-chart"></canvas></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header">
+      <h2>Monthly detail</h2>
+      <div class="view-toggle" id="table-view-toggle"></div>
+    </div>
+    <div class="table-scroll"><table class="data-table" id="detail-table"></table></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header">
+      <h2>Record / correct a monthly reading</h2>
+      <span class="hint">Writes straight into the workbook and recalculates the forecast</span>
+    </div>
+    <form id="entry-form" class="form-grid">
+      <div class="field">
+        <label for="entry-platform">Platform</label>
+        <select id="entry-platform" required></select>
+      </div>
+      <div class="field">
+        <label for="entry-site">Site</label>
+        <select id="entry-site" required></select>
+      </div>
+      <div class="field">
+        <label for="entry-month">Month</label>
+        <input type="month" id="entry-month" required />
+      </div>
+      <div class="field">
+        <label for="entry-in-use">In use (TB)</label>
+        <input type="number" id="entry-in-use" step="0.01" min="0" required />
+      </div>
+      <div class="field">
+        <label for="entry-total">Total capacity (TB) &mdash; optional</label>
+        <input type="number" id="entry-total" step="0.01" min="0" placeholder="leave blank to keep current" />
+      </div>
+      <div class="field">
+        <button type="submit" class="btn primary">Save reading</button>
+      </div>
+    </form>
+    <div id="entry-msg" class="form-msg"></div>
+  </div>
+
+  <footer class="note">
+    Source file: Storage_Capacity_Overview_and_forecast.xlsx &middot; edits are written back to the same workbook on the server.
+  </footer>
+</div>
+
+<script src="/vendor/chart.umd.js"></script>
+<script src="/app.js"></script>
