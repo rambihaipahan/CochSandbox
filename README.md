@@ -107,6 +107,63 @@ python run.py
 The dashboard listens on **0.0.0.0:4100** (`app/config.py`) -- open
 `http://BEM-HPD-TST01.cochlear.com:4100/` once it's running there.
 
+### Pointing the dashboard at the SharePoint-hosted workbook
+
+By default the app reads/writes the copy bundled in `data/`. To have it
+operate on the team's actual live file (e.g. the one at
+`.../ITHosting/Shared Documents/Process; Capacity Mgmt/Storage Capacity
+Overview and forecast.xlsx` on SharePoint) instead, point it at the local
+**OneDrive-synced copy** of that file rather than the static copy in `data/`
+-- this needs no Azure app registration or API credentials, just OneDrive
+already syncing that SharePoint library to the server:
+
+1. On the server, open that file's location in SharePoint in a browser and
+   click **Sync** (or add the "ITHosting" document library to OneDrive via
+   Settings -> Sync). This creates a real local folder that OneDrive keeps
+   in sync automatically, typically under something like:
+   ```
+   C:\Users\<account>\Cochlear Ltd\IT Hosting - Documents\Process; Capacity Mgmt\Storage Capacity Overview and forecast.xlsx
+   ```
+   (Right-click the file in File Explorer -> "Copy as path" is the reliable
+   way to get the exact path once it's synced.)
+2. Set the `DASHBOARD_WORKBOOK_PATH` environment variable to that path
+   before starting the app, e.g. in PowerShell:
+   ```powershell
+   $env:DASHBOARD_WORKBOOK_PATH = "C:\Users\<account>\Cochlear Ltd\IT Hosting - Documents\Process; Capacity Mgmt\Storage Capacity Overview and forecast.xlsx"
+   python run.py
+   ```
+   For a persistent service, set this as an actual system/service
+   environment variable (e.g. an `Environment=` line in the systemd unit, or
+   `nssm set StorageDashboard AppEnvironmentExtra
+   DASHBOARD_WORKBOOK_PATH=C:\...` for NSSM) rather than a one-off shell
+   variable, so it's set the same way on every restart.
+
+What this gets you, and its limits:
+
+- **The dashboard now reads/writes the real file.** A save from the
+  dashboard writes into that local synced copy, and OneDrive pushes it back
+  up to SharePoint within its normal sync interval (usually seconds). The
+  app also detects when the file changes on disk from something else
+  (someone editing it directly in Excel, or OneDrive syncing down someone
+  else's edit) and reloads automatically on the next request -- no restart
+  needed.
+- **File locks.** If someone has the workbook open in Excel at the moment
+  the dashboard tries to save, Windows will refuse the write. The dashboard
+  surfaces this clearly in the entry form ("Couldn't save -- ... is
+  currently open/locked...") rather than failing silently -- just ask them
+  to close it and retry.
+- **Concurrent edits aren't merged.** If someone edits the same cells
+  directly in Excel/SharePoint around the same time as a dashboard save,
+  whichever write lands last on disk wins (same as two people editing an
+  Excel file at once normally). For a small team doing a monthly review
+  this is a reasonable tradeoff; a real multi-writer setup would need the
+  Microsoft Graph API with proper conflict handling, which needs an Azure
+  AD app registration from your IT/M365 admin -- worth doing later if this
+  becomes a heavily-multi-user tool, but not needed to get started.
+- **The account running the dashboard needs to be signed into OneDrive**
+  with access to that SharePoint site, same as any user who wants that
+  folder synced.
+
 ### Running as a persistent service on BEM-HPD-TST01
 
 Pick whichever matches how the server is managed:

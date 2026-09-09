@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 
 from .analytics import platform_summary
 from .config import STATIC_DIR, WORKBOOK_PATH
-from .excel_store import get_store
+from .excel_store import WorkbookLockedError, get_store
 from .schema import EntryIn
 
 app = FastAPI(title="Storage Utilization Dashboard")
@@ -83,6 +83,8 @@ def add_entry(entry: EntryIn):
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except WorkbookLockedError as exc:
+        raise HTTPException(status_code=423, detail=str(exc)) from exc
     return {"platform": entry.platform, "site": entry.site, "series": series}
 
 

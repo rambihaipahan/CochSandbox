@@ -33,6 +33,7 @@ import datetime as dt
 import re
 import threading
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Optional
 
 import openpyxl
@@ -125,12 +126,18 @@ class SiteBlock:
         return [self.rows[r] for r in sorted(self.rows)]
 
 
+class WorkbookLockedError(Exception):
+    """Raised when the workbook file can't be written because something else
+    (typically Excel, or OneDrive mid-sync) has it open/locked on disk."""
+
+
 class ExcelStore:
     def __init__(self, path=WORKBOOK_PATH):
-        self.path = path
+        self.path = Path(path)
         self._lock = threading.RLock()
         self.platform_map = load_platform_map()
         self.blocks: dict[tuple[str, str], SiteBlock] = {}
+        self._mtime = None
         self._load()
 
     # ------------------------------------------------------------------ #
@@ -151,6 +158,23 @@ class ExcelStore:
         wb_values.close()
         # Formula-preserving handle used only for targeted writes + save.
         self._wb = openpyxl.load_workbook(self.path, data_only=False)
+        self._mtime = self.path.stat().st_mtime
+
+    def _reload_if_changed(self):
+        """Picks up edits made outside this app -- e.g. someone editing the
+        workbook directly in Excel/SharePoint when it's pointed at a
+        OneDrive-synced file, which writes to disk independently of this
+        process. Cheap when nothing changed (just a stat() call)."""
+        try:
+            current_mtime = self.path.stat().st_mtime
+        except OSError:
+            return
+        if current_mtime != self._mtime:
+            with self._lock:
+                current_mtime = self.path.stat().st_mtime
+                if current_mtime != self._mtime:
+                    self.blocks = {}
+                    self._load()
 
     @staticmethod
     def _parse_block(ws, header_row: int) -> dict:
@@ -206,6 +230,7 @@ class ExcelStore:
         return out
 
     def get_block(self, platform: str, site: str) -> SiteBlock:
+        self._reload_if_changed()
         key = (platform, site)
         if key not in self.blocks:
             raise KeyError(f"Unknown platform/site combination: {platform}/{site}")
@@ -317,7 +342,14 @@ class ExcelStore:
         return changed
 
     def _save(self):
-        self._wb.save(self.path)
+        try:
+            self._wb.save(self.path)
+        except PermissionError as exc:
+            raise WorkbookLockedError(
+                f"Couldn't save -- {self.path.name} is currently open/locked (e.g. someone has it "
+                "open in Excel, or OneDrive is mid-sync). Close it and try again."
+            ) from exc
+        self._mtime = self.path.stat().st_mtime
 
 
 _store: Optional[ExcelStore] = None
